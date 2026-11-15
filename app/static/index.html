@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keylight</title>
+<style>
+  :root {
+    --bg: #0b0c10; --panel: #14161c; --panel2: #1b1e26; --line: #262a35; --text: #e8eaf0; --dim: #8a90a0;
+    --accent: #7c5cff; --ok: #2bd67b; --warn: #ffb020; --bad: #ff4d6a; --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; gap: 16px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+  h1 .dot { width: 14px; height: 14px; border-radius: 4px; background: conic-gradient(#ff2bd6, #7a00ff, #00e5ff, #2bd67b, #ffb020, #ff2bd6); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--dim); max-width: 640px; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+  .pill.ok i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  main { padding: 0 28px 40px; max-width: 1400px; margin: 0 auto; }
+
+  .kb-wrap { background: radial-gradient(120% 140% at 50% 0%, #1a1d27 0%, #0d0e13 70%); border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
+  .kb { position: relative; width: 100%; user-select: none; touch-action: none; }
+  .key { position: absolute; padding: 2.5px; cursor: pointer; }
+  .key > div { width: 100%; height: 100%; border-radius: 7px; background: #20232c; position: relative; overflow: hidden;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); display: flex; align-items: flex-start; justify-content: flex-start; padding: 5px 7px; }
+  .key > div::before { content: ""; position: absolute; inset: 0; background: var(--c, #000); opacity: .9; mix-blend-mode: screen; }
+  .key > div::after { content: ""; position: absolute; inset: 0; border-radius: 7px; box-shadow: 0 0 18px 2px var(--c, #000); opacity: .55; }
+  .key span { position: relative; z-index: 1; font-size: clamp(8px, .85vw, 12px); color: rgba(255,255,255,.88); text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; }
+  .key.light span { color: rgba(0,0,0,.75); text-shadow: none; }
+  .key:active > div { transform: translateY(1px); }
+  .hint { color: var(--dim); font-size: 12.5px; margin-top: 14px; text-align: center; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card h2 { margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); font-weight: 600; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .seg button, .btn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); padding: 7px 12px; border-radius: 9px; cursor: pointer; font: inherit; }
+  .seg button:hover, .btn:hover { border-color: #3a4050; }
+  .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+  .row label { width: 92px; color: var(--dim); flex: none; }
+  .row input[type=range] { flex: 1; accent-color: var(--accent); }
+  .row output { width: 46px; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+  input[type=color] { width: 40px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: none; padding: 2px; cursor: pointer; }
+  select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; }
+  .pane { display: none; } .pane.on { display: block; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatches b { width: 24px; height: 24px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(255,255,255,.12); }
+  .drop { border: 1.5px dashed #3a4050; border-radius: 12px; padding: 18px; text-align: center; color: var(--dim); cursor: pointer; }
+  .drop.over { border-color: var(--accent); color: var(--text); }
+  .stops { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .small { font-size: 12px; color: var(--dim); }
+  .actions { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .switch { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--panel2); border-radius: 10px; margin-bottom: 8px; }
+  .switch input { width: 40px; height: 22px; accent-color: var(--accent); }
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: #22252f; border: 1px solid var(--line); padding: 10px 16px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 640px) { header, main { padding-left: 16px; padding-right: 16px; } .kb-wrap { padding: 12px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot"></span>Keylight <span class="small" style="font-weight:400">K8 Pro</span></h1>
+  <div class="pill" id="status"><i></i><span>Connecting…</span></div>
+</header>
+<main>
+  <div class="kb-wrap">
+    <div class="kb" id="kb"></div>
+    <div class="hint" id="hint">Click a key to preview the click effect.</div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Base layer</h2>
+      <div class="seg" id="modes">
+        <button data-mode="solid">Solid</button><button data-mode="perkey">Paint keys</button>
+        <button data-mode="gradient">Gradient</button><button data-mode="rainbow">Rainbow</button>
+        <button data-mode="breathe">Breathe</button><button data-mode="image">Image</button><button data-mode="video">Video / GIF</button>
+      </div>
+
+      <div class="pane" data-pane="solid">
+        <div class="row"><label>Colour</label><input type="color" data-path="base.solid"></div>
+      </div>
+
+      <div class="pane" data-pane="perkey">
+        <div class="row"><label>Brush</label><input type="color" id="brush" value="#ff2bd6">
+          <button class="btn" id="eyedrop" title="Pick a colour from a key">Pick</button></div>
+        <div class="swatches" id="swatches"></div>
+        <div class="row" style="margin-top:14px"><button class="btn" id="fill">Fill all</button><button class="btn" id="clear">Clear</button></div>
+        <div class="small">Click or drag across keys to paint them.</div>
+      </div>
+
+      <div class="pane" data-pane="gradient">
+        <div class="row"><label>Colours</label><div class="stops" id="stops"></div></div>
+        <div class="row"><label>Angle</label><input type="range" min="0" max="360" step="1" data-path="base.gradient.angle"><output></output></div>
+        <div class="row"><label>Motion</label><input type="range" min="0" max="1" step="0.01" data-path="base.gradient.speed"><output></output></div>
+      </div>
+
+      <div class="pane" data-pane="rainbow">
+        <div class="row"><label>Speed</label><input type="range" min="-1" max="1" step="0.01" data-path="base.rainbow.speed"><output></output></div>
+        <div class="row"><label>Spread</label><input type="range" min="0.1" max="4" step="0.05" data-path="base.rainbow.scale"><output></output></div>
+        <div class="row"><label>Angle</label><input type="range" min="0" max="360" step="1" data-path="base.rainbow.angle"><output></output></div>
+        <div class="row"><label>Saturation</label><input type="range" min="0" max="1" step="0.01" data-path="base.rainbow.saturation"><output></output></div>
+      </div>
+
+      <div class="pane" data-pane="breathe">
+        <div class="row"><label>Colour</label><input type="color" data-path="base.breathe.color"></div>
+        <div class="row"><label>Speed</label><input type="range" min="0.05" max="2" step="0.01" data-path="base.breathe.speed"><output></output></div>
+      </div>
+
+      <div class="pane" data-pane="image">
+        <div class="drop" data-accept="image/*">Drop an image here or click to choose<div class="small" data-name="image"></div></div>
+        <div class="row"><label>Fit</label><select data-path="base.image.fit"><option value="cover">Fill (crop)</option><option value="contain">Fit (letterbox)</option><option value="stretch">Stretch</option></select></div>
+        <div class="row"><label>Scroll</label><input type="range" min="-1" max="1" step="0.01" data-path="base.image.scroll"><output></output></div>
+        <div class="small">Scroll pans across wide images (panoramas, pixel art strips). 0 = still.</div>
+      </div>
+
+      <div class="pane" data-pane="video">
+        <div class="drop" data-accept="video/*,image/gif">Drop a video or GIF here or click to choose<div class="small" data-name="video"></div></div>
+        <div class="row"><label>Fit</label><select data-path="base.video.fit"><option value="cover">Fill (crop)</option><option value="contain">Fit (letterbox)</option><option value="stretch">Stretch</option></select></div>
+        <div class="small">Loops forever. High-contrast, saturated clips look best on 87 keys.</div>
+      </div>
+      <input type="file" id="file" hidden>
+    </section>
+
+    <section class="card">
+      <h2>On key press</h2>
+      <div class="seg" id="effects">
+        <button data-fx="none">None</button><button data-fx="flash">Flash</button><button data-fx="ripple">Ripple</button>
+        <button data-fx="glow">Glow</button><button data-fx="cross">Cross</button><button data-fx="sparkle">Sparkle</button>
+        <button data-fx="trail">Trail</button><button data-fx="heatmap">Heatmap</button>
+      </div>
+      <div class="row"><label>Colour</label><input type="color" data-path="click.color">
+        <label style="width:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" data-path="click.rainbow"> Rainbow</label></div>
+      <div class="row"><label>Duration</label><input type="range" min="0.1" max="3" step="0.05" data-path="click.duration"><output></output></div>
+      <div class="row"><label>Size</label><input type="range" min="0.2" max="3" step="0.05" data-path="click.size"><output></output></div>
+      <div class="small" id="fxnote"></div>
+    </section>
+
+    <section class="card">
+      <h2>Output</h2>
+      <div class="switch"><div><b>Live control</b><div class="small">Stream from this app over USB</div></div><input type="checkbox" data-path="live"></div>
+      <div class="row"><label>Brightness</label><input type="range" min="0" max="1" step="0.01" data-path="brightness"><output></output></div>
+      <div class="row"><label>Gamma</label><input type="range" min="1" max="2.8" step="0.05" data-path="gamma"><output></output></div>
+      <div class="row"><label>Frame rate</label><input type="range" min="10" max="90" step="5" data-path="fps"><output></output></div>
+      <div class="actions">
+        <button class="btn primary" id="save">Save to keyboard</button>
+        <div class="small">Stores the current colours and the closest built-in click effect on the keyboard itself, so they work over Bluetooth and without this app. Animated layers are saved as a still frame.</div>
+        <button class="btn" id="toperkey">Copy current look into Paint keys</button>
+      </div>
+    </section>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+let cfg, keys, KW, KH, ws, eyedrop = false, painting = false, lastColors = [];
+const FX_FIRMWARE = { none: "none", flash: "Flash", trail: "Flash", heatmap: "Flash", glow: "Glow", sparkle: "Glow", ripple: "Ripple", cross: "Cross" };
+
+function toast(msg, ms = 2600) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), ms); }
+const get = (path) => path.split(".").reduce((o, k) => o?.[k], cfg);
+function patchFor(path, value) { const out = {}; let o = out; const ks = path.split("."); ks.slice(0, -1).forEach(k => o = o[k] = {}); o[ks.at(-1)] = value; return out; }
+function setLocal(path, value) { const ks = path.split("."); let o = cfg; ks.slice(0, -1).forEach(k => o = o[k]); o[ks.at(-1)] = value; }
+
+let pending = {}, timer;
+function deepMerge(a, b) { for (const k in b) { if (b[k] && typeof b[k] === "object" && !Array.isArray(b[k]) && a[k] && typeof a[k] === "object") deepMerge(a[k], b[k]); else a[k] = b[k]; } return a; }
+function push(patch, now = false) {
+  deepMerge(pending, patch);
+  clearTimeout(timer);
+  timer = setTimeout(() => { const p = pending; pending = {}; fetch("/api/config", { method: "POST", body: JSON.stringify(p) }); }, now ? 0 : 40);
+}
+function set(path, value) { setLocal(path, value); push(patchFor(path, value)); }
+
+function buildKeyboard() {
+  const kb = $("#kb");
+  kb.style.aspectRatio = `${KW} / ${KH}`;
+  kb.innerHTML = "";
+  keys.forEach((k, i) => {
+    const el = document.createElement("div");
+    el.className = "key"; el.dataset.i = i;
+    Object.assign(el.style, { left: `${k.x / KW * 100}%`, top: `${k.y / KH * 100}%`, width: `${k.w / KW * 100}%`, height: `${k.h / KH * 100}%` });
+    el.innerHTML = `<div><span>${k.label}</span></div>`;
+    kb.appendChild(el);
+  });
+  let lastPt = null;
+  kb.addEventListener("pointerdown", e => {
+    const k = e.target.closest(".key"); if (!k) return;
+    painting = true; lastPt = [e.clientX, e.clientY]; kb.setPointerCapture(e.pointerId); onKey(+k.dataset.i, true);
+  });
+  kb.addEventListener("pointermove", e => {
+    if (!painting || cfg.base.mode !== "perkey") return;
+    // walk the segment since the last event so fast strokes don't skip keys
+    const [x0, y0] = lastPt, steps = Math.max(1, Math.ceil(Math.hypot(e.clientX - x0, e.clientY - y0) / 6));
+    let prev = -1;
+    for (let s = 1; s <= steps; s++) {
+      const k = document.elementFromPoint(x0 + (e.clientX - x0) * s / steps, y0 + (e.clientY - y0) * s / steps)?.closest(".key");
+      if (k && +k.dataset.i !== prev) { prev = +k.dataset.i; onKey(prev, false); }
+    }
+    lastPt = [e.clientX, e.clientY];
+  });
+  addEventListener("pointerup", () => { if (painting && cfg.base.mode === "perkey") push({ base: { perkey: cfg.base.perkey } }, true); painting = false; });
+}
+
+function onKey(i, down) {
+  if (cfg.base.mode === "perkey") {
+    if (eyedrop) { $("#brush").value = cfg.base.perkey[i]; eyedrop = false; $("#eyedrop").classList.remove("on"); return; }
+    cfg.base.perkey[i] = $("#brush").value;
+    push({ base: { perkey: cfg.base.perkey } });
+  } else if (down) {
+    ws?.readyState === 1 && ws.send(JSON.stringify({ t: "press", i }));
+  }
+}
+
+function paintFrame(hex) {
+  const els = $$(".key");
+  for (let i = 0; i < els.length; i++) {
+    const c = hex.substr(i * 6, 6);
+    if (lastColors[i] === c) continue;
+    lastColors[i] = c;
+    const r = parseInt(c.substr(0, 2), 16), g = parseInt(c.substr(2, 2), 16), b = parseInt(c.substr(4, 2), 16);
+    els[i].style.setProperty("--c", `#${c}`);
+    els[i].classList.toggle("light", 0.299 * r + 0.587 * g + 0.114 * b > 170);
+  }
+}
+
+function renderStatus(s) {
+  const p = $("#status");
+  p.classList.toggle("ok", s.connected);
+  $("span", p).textContent = s.connected
+    ? (s.live ? `Live on keyboard · ${s.fps} fps` : "Connected · keyboard running its saved look")
+    : (s.error || "Not connected") + " (preview only)";
+  if (s.connected && s.error) $("span", p).textContent += ` · ${s.error}`;
+  $("#save").disabled = !s.connected;
+}
+
+function syncUI() {
+  $$("#modes button").forEach(b => b.classList.toggle("on", b.dataset.mode === cfg.base.mode));
+  $$(".pane").forEach(p => p.classList.toggle("on", p.dataset.pane === cfg.base.mode));
+  $$("#effects button").forEach(b => b.classList.toggle("on", b.dataset.fx === cfg.click.effect));
+  $$("[data-path]").forEach(el => {
+    const v = get(el.dataset.path);
+    if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+    const out = el.nextElementSibling; if (out?.tagName === "OUTPUT") out.textContent = (+v).toFixed(el.step < 1 ? 2 : 0);
+  });
+  $$("[data-name]").forEach(el => el.textContent = cfg.base[el.dataset.name].name || "");
+  $("#hint").textContent = cfg.base.mode === "perkey" ? "Paint mode: click or drag to colour keys." : "Click a key to preview the click effect.";
+  const fx = FX_FIRMWARE[cfg.click.effect];
+  $("#fxnote").textContent = cfg.click.effect === "none" ? "" : `When saved to the keyboard this becomes the built-in “${fx}” effect.`;
+  renderStops();
+}
+
+function renderStops() {
+  const box = $("#stops"); box.innerHTML = "";
+  cfg.base.gradient.colors.forEach((c, i) => {
+    const inp = document.createElement("input"); inp.type = "color"; inp.value = c;
+    inp.oninput = () => { cfg.base.gradient.colors[i] = inp.value; push({ base: { gradient: { colors: cfg.base.gradient.colors } } }); };
+    inp.oncontextmenu = e => { e.preventDefault(); if (cfg.base.gradient.colors.length > 2) { cfg.base.gradient.colors.splice(i, 1); push({ base: { gradient: { colors: cfg.base.gradient.colors } } }); renderStops(); } };
+    box.appendChild(inp);
+  });
+  if (cfg.base.gradient.colors.length < 6) {
+    const add = document.createElement("button"); add.className = "btn"; add.textContent = "+";
+    add.onclick = () => { cfg.base.gradient.colors.push("#ffffff"); push({ base: { gradient: { colors: cfg.base.gradient.colors } } }); renderStops(); };
+    box.appendChild(add);
+  }
+  const s = document.createElement("span"); s.className = "small"; s.textContent = "right-click removes"; box.appendChild(s);
+}
+
+async function upload(file) {
+  if (!file) return;
+  toast(`Uploading ${file.name}…`, 10000);
+  const fd = new FormData(); fd.append("file", file);
+  const r = await fetch("/api/upload", { method: "POST", body: fd });
+  if (!r.ok) { toast(await r.text()); return; }
+  const j = await r.json();
+  cfg.base.mode = j.kind; cfg.base[j.kind].file = j.file; cfg.base[j.kind].name = file.name;
+  syncUI(); toast(`Mapped ${file.name} onto the keys`);
+}
+
+function wire() {
+  $$("#modes button").forEach(b => b.onclick = () => { set("base.mode", b.dataset.mode); syncUI(); });
+  $$("#effects button").forEach(b => b.onclick = () => { set("click.effect", b.dataset.fx); syncUI(); });
+  $$("[data-path]").forEach(el => el.addEventListener("input", () => {
+    const v = el.type === "checkbox" ? el.checked : el.type === "range" ? +el.value : el.value;
+    set(el.dataset.path, v);
+    const out = el.nextElementSibling; if (out?.tagName === "OUTPUT") out.textContent = (+v).toFixed(el.step < 1 ? 2 : 0);
+  }));
+  ["#ff0040", "#ff6a00", "#ffd000", "#2bd67b", "#00e5ff", "#2f6bff", "#7a00ff", "#ff2bd6", "#ffffff", "#000000"].forEach(c => {
+    const b = document.createElement("b"); b.style.background = c; b.onclick = () => $("#brush").value = c; $("#swatches").appendChild(b);
+  });
+  $("#eyedrop").onclick = () => { eyedrop = !eyedrop; $("#eyedrop").classList.toggle("on", eyedrop); };
+  $("#fill").onclick = () => { cfg.base.perkey = cfg.base.perkey.map(() => $("#brush").value); push({ base: { perkey: cfg.base.perkey } }, true); };
+  $("#clear").onclick = () => { cfg.base.perkey = cfg.base.perkey.map(() => "#000000"); push({ base: { perkey: cfg.base.perkey } }, true); };
+  const file = $("#file");
+  $$(".drop").forEach(d => {
+    d.onclick = () => { file.accept = d.dataset.accept; file.click(); };
+    d.ondragover = e => { e.preventDefault(); d.classList.add("over"); };
+    d.ondragleave = () => d.classList.remove("over");
+    d.ondrop = e => { e.preventDefault(); d.classList.remove("over"); upload(e.dataTransfer.files[0]); };
+  });
+  file.onchange = () => { upload(file.files[0]); file.value = ""; };
+  $("#save").onclick = async () => {
+    $("#save").disabled = true; toast("Saving to keyboard…");
+    const r = await fetch("/api/save", { method: "POST" }); const j = await r.json();
+    $("#save").disabled = false;
+    if (j.ok) { cfg.live = false; syncUI(); toast("Saved. The keyboard now runs this look on its own, over Bluetooth too.", 4500); }
+    else toast(`Save failed: ${j.error}`, 5000);
+  };
+  $("#toperkey").onclick = async () => { const j = await (await fetch("/api/to_perkey", { method: "POST" })).json(); cfg.base.mode = "perkey"; cfg.base.perkey = j.perkey; syncUI(); toast("Copied. Touch it up with the brush."); };
+}
+
+function connectWS() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = e => { const m = JSON.parse(e.data); if (m.t === "frame") paintFrame(m.c); else if (m.t === "status") renderStatus(m); };
+  ws.onclose = () => { renderStatus({ connected: false, error: "App not running" }); setTimeout(connectWS, 1500); };
+}
+
+(async () => {
+  const s = await (await fetch("/api/state")).json();
+  cfg = s.config; keys = s.keys; KW = s.width; KH = s.height;
+  buildKeyboard(); wire(); syncUI(); renderStatus(s.status); connectWS();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+aiohttp>=3.9
+hidapi>=0.14
+numpy>=1.26
+pillow>=10
+pywebview>=5
